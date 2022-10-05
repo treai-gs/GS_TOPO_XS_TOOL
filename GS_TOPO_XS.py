@@ -403,7 +403,7 @@ class MainPage(GUI):  # inherits from the GUI class
 
 
         def add_watermark(ax, fig):
-            img = Image.open('.\img\TREA-logo1_rgb_hi.png')
+            img = Image.open('.\program\img\TREA-logo1_rgb_hi.png')
             width, height = ax.figure.get_size_inches()*fig.dpi
             wm_width = int(width/25) # make the watermark 1/4 of the figure size
             scaling = (wm_width / float(img.size[0]))
