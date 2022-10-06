@@ -13,7 +13,7 @@ block_cipher = None
 
 a = Analysis(
     ['GS_TOPO_XS.py'],
-    pathex=[],
+    pathex=[r'C:\Users\saadia\Documents\0_WORK\XSECTION_DEVELOPMENT\program'],
     binaries=binaries,
     datas=datas,
     hiddenimports=['rasterio.sample','rasterio.vrt','rasterio._features'],
@@ -26,6 +26,9 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
+
+a.datas += [('img\TREA-logo1_rgb_hi.png',r'C:\Users\saadia\Documents\0_WORK\XSECTION_DEVELOPMENT\program\img\TREA-logo1_rgb_hi.png', "DATA")]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
