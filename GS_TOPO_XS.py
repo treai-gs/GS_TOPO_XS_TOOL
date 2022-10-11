@@ -471,7 +471,7 @@ class MainPage(GUI):  # inherits from the GUI class
                             height = 2,
                             width = 10,
                             text = "Plot")
-        plot_button.grid(row = 5, column = 1, padx = 5, pady = 5, sticky="W")
+        plot_button.grid(row = 4, column = 2, padx = 5, pady = 5, sticky="W")
 
         # button that displays the map plot
         plot_xsection = tk.Button(master = frame3,
