@@ -78,7 +78,7 @@ class MyApp(tk.Tk):
 class GUI(tk.Frame):
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
-        self.main_frame = tk.Frame(self, bg="#BEB2A7", height=1024, width=2000)
+        self.main_frame = tk.Frame(self, bg="#BEB2A7", height=1000, width=1920)
         # self.main_frame.pack_propagate(0)
         self.main_frame.pack(fill="both", expand="true")
         self.main_frame.grid_rowconfigure(0, weight=1)
@@ -90,13 +90,13 @@ class MainPage(GUI):  # inherits from the GUI class
         GUI.__init__(self, parent)
 
         frame1 = tk.LabelFrame(self, frame_styles, text="Data Upload")
-        frame1.place(rely=0.01, relx=0.02, height=300, width=800)
+        frame1.place(rely=0.01, relx=0.02, height=600, width=800)
 
         frame2 = tk.LabelFrame(self, frame_styles, text="Map Preview")
-        frame2.place(rely=0.25, relx=0.02, height=700, width=800)
+        frame2.place(rely=0.25, relx=0.02, height=600, width=800)
 
         frame3 = tk.LabelFrame(self, frame_styles, text="Cross Section Options")
-        frame3.place(rely=0.01, relx=0.45, height=200, width=900)
+        frame3.place(rely=0.01, relx=0.45, height=400, width=900)
 
         frame4 = tk.LabelFrame(self, frame_styles, text="Cross Section Preview")
         frame4.place(rely=0.25, relx=0.45, height=700, width=900)
