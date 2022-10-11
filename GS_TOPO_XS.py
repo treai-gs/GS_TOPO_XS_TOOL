@@ -90,7 +90,7 @@ class MainPage(GUI):  # inherits from the GUI class
         GUI.__init__(self, parent)
 
         frame1 = tk.LabelFrame(self, frame_styles, text="Data Upload")
-        frame1.place(rely=0.01, relx=0.02, height=600, width=800)
+        frame1.place(rely=0.01, relx=0.02, height=400, width=800)
 
         frame2 = tk.LabelFrame(self, frame_styles, text="Map Preview")
         frame2.place(rely=0.25, relx=0.02, height=600, width=800)
@@ -121,7 +121,7 @@ class MainPage(GUI):  # inherits from the GUI class
                 initialdir='/',
                 filetypes=filetypes)
             dem = rio.open(dem_fp) # DEM object containing the data, CRS, and other useful attributes
-            dem_path.config(text=dem_fp)
+            dem_path.config(text="Loaded")
 
         def select_xlines():
             global xlines, xlines_fp
@@ -135,7 +135,7 @@ class MainPage(GUI):  # inherits from the GUI class
                 initialdir='/',
                 filetypes=filetypes)
             xlines = gpd.read_file(xlines_fp) # horizontal MPs geopandas dataframe
-            xlines_path.config(text=xlines_fp)
+            xlines_path.config(text="Loaded")
 
 
 
@@ -152,7 +152,7 @@ class MainPage(GUI):  # inherits from the GUI class
                 filetypes=filetypes)
             vert = gpd.read_file(mp_v_fp) # vertical MPs geopandas dataframe
             vert_transformed = vert.to_crs(xlines.crs)
-            mp_v_path.config(text=mp_v_fp)
+            mp_v_path.config(text="Loaded")
             list_items.set([col for col in vert_transformed if col.startswith('D')])
 
 
@@ -169,7 +169,7 @@ class MainPage(GUI):  # inherits from the GUI class
                 filetypes=filetypes)
             hori = gpd.read_file(mp_h_fp) # horizontal MPs geopandas dataframe
             hori_transformed = hori.to_crs(xlines.crs)
-            mp_h_path.config(text=mp_h_fp)
+            mp_h_path.config(text="Loaded")
 
         def buffer_size():
             global buffer_lines
@@ -468,7 +468,7 @@ class MainPage(GUI):  # inherits from the GUI class
         # button that displays the map plot
         plot_button = tk.Button(master = frame1,
                             command = lambda: [buffer_size(), plot()],
-                            height = 2,
+                            height = 1,
                             width = 10,
                             text = "Plot")
         plot_button.grid(row = 4, column = 2, padx = 5, pady = 5, sticky="W")
