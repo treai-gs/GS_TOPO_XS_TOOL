@@ -31,7 +31,7 @@ class App(tk.Tk):
 
         # configure the root window
         self.title('GS Topographic X-Section Tool v2.0')
-        self.geometry('1000x900')
+        self.geometry('1000x800')
 
 # Frame 1: Data Upload
         self.frame1 = tk.LabelFrame(self, text="Data Upload", width=450, height=400)
@@ -118,40 +118,6 @@ class App(tk.Tk):
         self.label_pb = ttk.Label(self.frame1)
         self.label_pb.grid(row = 10, column = 0, columnspan=2, padx=10)
 
-    # # Frame 2: Map Preview
-    #     self.frame2 = tk.LabelFrame(self, text="Map Preview", width=450, height=450)
-    #     self.frame2.grid(row=1, column=0, padx=20, sticky="nsew")
-    #     self.frame2.grid_propagate(False)
-
-    #     self.canvas_frame2 = tk.Canvas(self.frame2, width=450)
-    #     self.scrollbar_frame2 = ttk.Scrollbar(self, orient="vertical", command=self.canvas_frame2.yview)
-    #     self.sub_frame2 = ttk.Frame(self.canvas_frame2, width=450, height=700)
-
-    #     self.sub_frame2.bind(
-    #         "<Configure>",
-    #         lambda e: self.canvas_frame2.configure(
-    #             scrollregion=self.canvas_frame2.bbox("all")
-    #         )
-    #     )
-
-    #     self.canvas_frame2.create_window((0, 0), window=self.sub_frame2, anchor="n")
-
-    #     self.canvas_frame2.configure(yscrollcommand=self.scrollbar_frame2.set)
-
-    #     self.canvas_frame2.pack(side="left", fill="both", expand=True)
-    #     # self.scrollbar_frame3.pack(side="right", fill="y", expand=True, anchor="nw")
-    #     self.scrollbar_frame2.grid(column=1, row=1, sticky="ns")
-    #     # self.scrollbar_frame3.pack_propagate(0)
-    #     # self.canvas_frame3.pack_propagate(0)
-
-    #     # Frame: Map
-    #     self.frame_map = tk.Frame(self.sub_frame2, width=400, height=400)
-    #     self.frame_map.grid(row=1, column=0, padx=10, pady=10)
-
-    #     # Button: Load Map Preview 
-    #     self.map_button = ttk.Button(self.frame2, text='Plot Map Preview', command=self.plot_map)
-    #     self.map_button.grid(row = 0, column = 0, columnspan=2, padx=10, pady=10,sticky="ew")
-
         
     # Frame 3: Configure project
         self.frame2 = tk.LabelFrame(self, text="Configure Cross Section", width=450, height=300)
@@ -231,13 +197,13 @@ class App(tk.Tk):
         self.plot_xsect_button.grid(row = 7, column = 0, columnspan=3, padx=10, pady=10,sticky="ew")
 
     # Frame 3: Cross Section Preview
-        self.frame3 = tk.LabelFrame(self, text="Cross Section Preview", width=450, height=450)
+        self.frame3 = tk.LabelFrame(self, text="Cross Section Preview", width=450, height=350)
         self.frame3.grid(row=1, column=0, columnspan=3, padx=20, sticky="nsew")
         self.frame3.grid_propagate(False)
 
-        self.canvas_frame3 = tk.Canvas(self.frame3, width=450, height=450, highlightthickness=0)
+        self.canvas_frame3 = tk.Canvas(self.frame3, width=450, height=350, highlightthickness=0)
         self.scrollbar_frame3 = ttk.Scrollbar(self, orient="vertical", command=self.canvas_frame3.yview)
-        self.sub_frame3 = ttk.Frame(self.canvas_frame3, width=450, height=450)
+        self.sub_frame3 = ttk.Frame(self.canvas_frame3, width=450, height=350)
 
         self.sub_frame3.bind(
             "<Configure>",
