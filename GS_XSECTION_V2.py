@@ -24,14 +24,31 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+class MenuBar(tk.Menu):
+    def __init__(self, parent):
+        tk.Menu.__init__(self, parent)
+
+        menu_file = tk.Menu(self, tearoff=0)
+        
+
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
         # configure the root window
-        self.title('GS Topographic X-Section Tool v2.0')
-        self.geometry('1000x800')
+        self.title('GS Topographic X-Section Tool v2.1')
+        self.geometry()
+        self.update()
+        self.minsize(self.winfo_width(), self.winfo_height())
+
+        self.rowconfigure(1, weight = 1)
+        self.columnconfigure(0, weight = 1)
+        menubar = MenuBar(self)
+        tk.Tk.config(self, menu=menubar)
+        # menubar.add_cascade(label="Batch Tools", menu=menubar)
+        menubar.add_command(label="Save Configuration", command=self.save_config)
+        menubar.add_command(label="Load Configuration", command=self.load_config)
 
 # Frame 1: Data Upload
         self.frame1 = tk.LabelFrame(self, text="Data Upload", width=450, height=400)
@@ -124,84 +141,93 @@ class App(tk.Tk):
         self.frame2.grid(row=0, column=2, padx=20, pady=10, sticky="nsew")
         self.frame2.grid_propagate(False)
 
+        # Label: Select x-section
+        self.label_xsect = ttk.Label(self.frame2, text="X-section to plot")
+        self.label_xsect.grid(row = 0, column = 0, padx=10, pady=10, sticky="w")
+
+        # Combobox: Select x-section to plot
+        self.xsect_combo_text = tk.StringVar()
+        self.xsect_combo = ttk.Combobox(self.frame2, textvariable=self.xsect_combo_text, state="readonly")
+        self.xsect_combo.grid(row = 0, column = 1, columnspan=2,padx=10, pady=10, sticky="ew")
+
+        self.xsect_combo.bind("<<ComboboxSelected>>", self.config_to_entries) 
+
         # Label: Vector Scale
         self.label_vec_scale = ttk.Label(self.frame2, text='Vector Scale')
-        self.label_vec_scale.grid(row = 0, column = 0, padx=10, pady=10, sticky="w")
+        self.label_vec_scale.grid(row = 1, column = 0, padx=10, pady=10, sticky="w")
 
         # Entry: Vector Scale
         self.vec_scale_entry = ttk.Entry(self.frame2, width=10)
-        self.vec_scale_entry.insert(0, "1.0")
-        self.vec_scale_entry.grid(row = 0, column = 1,sticky="w")
+        self.vec_scale_entry.grid(row = 1, column = 1,sticky="w")
 
         # Label: Vertical exaggeration
         self.label_vert_scale = ttk.Label(self.frame2, text='Vertical Exaggeration')
-        self.label_vert_scale.grid(row = 1, column = 0, padx=10, pady=10, sticky="w")
+        self.label_vert_scale.grid(row = 2, column = 0, padx=10, pady=10, sticky="w")
 
         # Entry: Vertical exaggeration
         self.vert_scale_entry = ttk.Entry(self.frame2, width=10)
-        self.vert_scale_entry.insert(0, "1.0")
-        self.vert_scale_entry.grid(row = 1, column = 1,sticky="w")
+        self.vert_scale_entry.grid(row = 2, column = 1,sticky="w")
 
         # Label: Arrow length
         self.label_arrow_length = ttk.Label(self.frame2, text='Arrow Length (mm)')
-        self.label_arrow_length.grid(row = 2, column = 0, padx=10, pady=10, sticky="w")
+        self.label_arrow_length.grid(row = 3, column = 0, padx=10, pady=10, sticky="w")
 
         # Entry: Arrow length
         self.arrow_length_entry = ttk.Entry(self.frame2, width=10)
-        self.arrow_length_entry.insert(0, "10.0")
-        self.arrow_length_entry.grid(row = 2, column = 1,sticky="w")
+        self.arrow_length_entry.grid(row = 3, column = 1,sticky="w")
+
+        # Label: X Limits
+        self.label_x_lims = ttk.Label(self.frame2, text='X min, X max (m)')
+        self.label_x_lims.grid(row = 4, column = 0, padx=10, pady=10, sticky="ew")
+
+        # Entry: X Limits Min
+        self.x_min = ttk.Entry(self.frame2, )
+        self.x_min.grid(row = 4, column = 1,sticky="ew")     
+
+        # Entry: X Limits Max
+        self.x_max = ttk.Entry(self.frame2,)
+        self.x_max.grid(row = 4, column = 2,padx=10, pady=10,sticky="w")
 
         # Label: Y Limits
         self.label_y_lims = ttk.Label(self.frame2, text='Y min, Y max (m)')
-        self.label_y_lims.grid(row = 3, column = 0, padx=10, pady=10, sticky="ew")
+        self.label_y_lims.grid(row = 5, column = 0, padx=10, pady=10, sticky="ew")
 
         # Entry: Y Limits Min
         self.y_min = ttk.Entry(self.frame2, )
-        self.y_min.insert(0, "-100")
-        self.y_min.grid(row = 3, column = 1,sticky="ew")     
+        self.y_min.grid(row = 5, column = 1,sticky="ew")     
 
         # Entry: Y Limits Max
         self.y_max = ttk.Entry(self.frame2,)
-        self.y_max.insert(0, "100")
-        self.y_max.grid(row = 3, column = 2,padx=10, pady=10,sticky="w")
+        self.y_max.grid(row = 5, column = 2,padx=10, pady=10,sticky="w")
 
         # Label: Select Start and End date
         self.label_date = ttk.Label(self.frame2, text="Cumulative displacement is calculated between two dates:")
-        self.label_date.grid(row = 4, column = 0, columnspan=3, padx=10, pady=10, sticky="w")
+        self.label_date.grid(row = 6, column = 0, columnspan=3, padx=10, pady=10, sticky="w")
 
         # Label: Select Start and End date
         self.label_date = ttk.Label(self.frame2, text="Start Date, End Date")
-        self.label_date.grid(row = 5, column = 0, padx=10, pady=10, sticky="w")
+        self.label_date.grid(row = 7, column = 0, padx=10, pady=10, sticky="w")
 
         # Combobox: Select Start Date
         self.start_date_combo_text = tk.StringVar()
         self.start_date_combo = ttk.Combobox(self.frame2, textvariable=self.start_date_combo_text, state="readonly")
-        self.start_date_combo.grid(row = 5, column = 1, sticky="ew")
+        self.start_date_combo.grid(row = 7, column = 1, sticky="ew")
 
         # Combobox: Select End Date
         self.end_date_combo_text = tk.StringVar()
         self.end_date_combo = ttk.Combobox(self.frame2, textvariable=self.end_date_combo_text, state="readonly")
-        self.end_date_combo.grid(row = 5, column = 2, padx=10, pady=10, sticky="ew")
-
-        # Label: Select x-section
-        self.label_xsect = ttk.Label(self.frame2, text="X-section to plot")
-        self.label_xsect.grid(row = 6, column = 0, padx=10, pady=10, sticky="w")
-
-        # Combobox: Select Start Date
-        self.xsect_combo_text = tk.StringVar()
-        self.xsect_combo = ttk.Combobox(self.frame2, textvariable=self.xsect_combo_text, state="readonly")
-        self.xsect_combo.grid(row = 6, column = 1, columnspan=2,padx=10, pady=10, sticky="ew")
+        self.end_date_combo.grid(row = 7, column = 2, padx=10, pady=10, sticky="ew")
 
         # Button: Plot x-section 
-        self.plot_xsect_button = ttk.Button(self.frame2, text='Plot x-section', command=lambda: [self.create_xsection(), self.xsection()])
-        self.plot_xsect_button.grid(row = 7, column = 0, columnspan=3, padx=10, pady=10,sticky="ew")
+        self.plot_xsect_button = ttk.Button(self.frame2, text='Plot x-section', command=lambda: [self.create_xsection(), self.xsection(), self.update_metadata()])
+        self.plot_xsect_button.grid(row = 8, column = 0, columnspan=3, padx=10, pady=10,sticky="ew")
 
     # Frame 3: Cross Section Preview
-        self.frame3 = tk.LabelFrame(self, text="Cross Section Preview", width=450, height=350)
+        self.frame3 = tk.LabelFrame(self, text="Cross Section Preview", width=450, height=550)
         self.frame3.grid(row=1, column=0, columnspan=3, padx=20, sticky="nsew")
         self.frame3.grid_propagate(False)
 
-        self.canvas_frame3 = tk.Canvas(self.frame3, width=450, height=350, highlightthickness=0)
+        self.canvas_frame3 = tk.Canvas(self.frame3, width=450, height=200, highlightthickness=0)
         self.scrollbar_frame3 = ttk.Scrollbar(self, orient="vertical", command=self.canvas_frame3.yview)
         self.sub_frame3 = ttk.Frame(self.canvas_frame3, width=450, height=350)
 
@@ -212,7 +238,7 @@ class App(tk.Tk):
             )
         )
 
-        self.canvas_frame3.create_window((0, 0), window=self.sub_frame3, anchor="n")
+        self.canvas_frame3.create_window((0, 0), window=self.sub_frame3, anchor="center")
 
         self.canvas_frame3.configure(yscrollcommand=self.scrollbar_frame3.set)
 
@@ -221,7 +247,7 @@ class App(tk.Tk):
 
 
         # # Frame: Preview
-        self.frame_preview = tk.Frame(self.sub_frame3, width=400, height=400)
+        self.frame_preview = tk.Frame(self.sub_frame3, width=400, height=200)
         self.frame_preview.grid(row=0, column=0, padx=10, pady=10)
 
         
@@ -282,7 +308,9 @@ class App(tk.Tk):
         distance = float(self.line_width_entry.get())
         self.buffer_lines = self.xlines.buffer(distance=distance, cap_style=3)
         self.xsect_combo["values"] = self.xlines["Name"].to_list()
-
+        self.xsect_combo_text.set(self.xsect_combo["values"][0])
+        self.metadata = dict.fromkeys(self.xlines["Name"].to_list()) # Dict that will be used to save the x-section metadata for the batch tool
+        
         # Load vertical MPs
         self.label_pb["text"] = "Loading vertical MPs ..."
         self.frame1.update_idletasks()
@@ -299,7 +327,66 @@ class App(tk.Tk):
         
         self.label_pb["text"] = "Data loaded."
         
-    
+    def update_metadata(self):
+        inputs_for_x_sect = {"vector_scale": self.vec_scale_entry.get(),
+                             "vertical_exaggeration": self.vert_scale_entry.get(),
+                             "arrow_length": self.arrow_length_entry.get(),
+                             "x_min": self.x_min.get(),
+                             "x_max": self.x_max.get(),
+                             "y_min": self.y_min.get(),
+                             "y_max": self.y_max.get(),
+                             "start_date": self.start_date_combo_text.get(),
+                             "end_date": self.end_date_combo_text.get()}
+        
+        self.metadata[self.xsect_combo_text.get()] = inputs_for_x_sect
+
+    def save_config(self):
+        fp = tk.filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            title='Save config CSV',
+            initialdir='/',
+            filetypes=(('CSV Files', '*.csv'),))
+        configuration = pd.DataFrame(self.metadata)
+        # print(configuration)
+        configuration.to_csv(fp)
+
+    def load_config(self):
+        fp = tk.filedialog.askopenfilename(
+            title='Select config CSV',
+            initialdir='/',
+            filetypes=(('CSV Files', '*.csv'),))
+        
+        configuration = pd.read_csv(fp, index_col=0)
+        self.metadata = configuration.to_dict()
+        # print(self.metadata)
+        self.config_to_entries("event")
+
+    def config_to_entries(self, event):
+
+        self.vec_scale_entry.delete(0, 'end')
+        self.vert_scale_entry.delete(0, 'end')
+        self.arrow_length_entry.delete(0, 'end')
+        self.x_min.delete(0, 'end')
+        self.x_max.delete(0, 'end')
+        self.y_min.delete(0, 'end')
+        self.y_max.delete(0, 'end')
+
+        config_for_entries = self.metadata[self.xsect_combo_text.get()]
+
+        # print(config_for_entries)
+        try:
+            self.vec_scale_entry.insert(0, config_for_entries["vector_scale"])
+            self.vert_scale_entry.insert(0, config_for_entries["vertical_exaggeration"])
+            self.arrow_length_entry.insert(0, config_for_entries["arrow_length"])
+            self.x_min.insert(0, config_for_entries["x_min"])
+            self.x_max.insert(0, config_for_entries["x_max"])
+            self.y_min.insert(0, config_for_entries["y_min"])
+            self.y_max.insert(0, config_for_entries["y_max"])
+            self.start_date_combo_text.set(config_for_entries["start_date"])
+            self.end_date_combo_text.set(config_for_entries["end_date"])
+        except TypeError:
+            print("No configuration loaded.")
+
     def plot_map(self):
         self.mapWindow = tk.Toplevel(app)
         self.mapWindow.title("Map Preview")
@@ -391,13 +478,14 @@ class App(tk.Tk):
 
     def xsection(self):
         self.xlines_select = self.xlines[self.xlines["Name"] == self.xsect_combo_text.get()]
-        print(self.xlines_select)
-        print(self.xlines_select["mp_dist_along_profile"].iloc[0])
+        # print(self.xlines_select)
+        # print(self.xlines_select["mp_dist_along_profile"].iloc[0])
         V = self.xlines_select["mp_vd"].iloc[0]
         U = self.xlines_select["mp_hd"].iloc[0]
         X = self.xlines_select["mp_dist_along_profile"].iloc[0]
         Y = self.xlines_select["mp_height_along_profile"].iloc[0]
         label = self.xlines_select["Name"]
+
 
         ymin = float(self.y_min.get())
         ymax = float(self.y_max.get())
@@ -415,7 +503,19 @@ class App(tk.Tk):
         ax.quiverkey(q, X=0.87, Y=1.05, U=key_scale,
                     label=str(key_scale)+' mm', labelpos='E')
         ax.set_aspect(vert_scale)
-        ax.set_ylim([ymin, ymax])        
+        ax.set_ylim([ymin, ymax])
+
+        try:
+            xmin = float(self.x_min.get())
+            xmax = float(self.x_max.get())
+        except ValueError:
+            xmin, xmax = ax.get_xlim()
+            self.x_min.delete(0, "end")
+            self.x_max.delete(0, "end")
+            self.x_min.insert(0, str(xmin))
+            self.x_max.insert(0, str(xmax))
+
+        ax.set_xlim([xmin, xmax])        
 
         self.add_watermark(ax, fig)
 
