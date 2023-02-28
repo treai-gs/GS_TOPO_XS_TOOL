@@ -51,7 +51,7 @@ class App(tk.Tk):
         menubar.add_command(label="Load Configuration", command=self.load_config)
 
 # Frame 1: Data Upload
-        self.frame1 = tk.LabelFrame(self, text="Data Upload", width=450, height=400)
+        self.frame1 = tk.LabelFrame(self, text="Data Upload", width=450, height=450)
         self.frame1.grid(row=0, column=0, padx=20, pady=10, sticky="nsew")
         self.frame1.grid_propagate(False)
 
@@ -137,7 +137,7 @@ class App(tk.Tk):
 
         
     # Frame 3: Configure project
-        self.frame2 = tk.LabelFrame(self, text="Configure Cross Section", width=450, height=300)
+        self.frame2 = tk.LabelFrame(self, text="Configure Cross Section", width=450, height=450)
         self.frame2.grid(row=0, column=2, padx=20, pady=10, sticky="nsew")
         self.frame2.grid_propagate(False)
 
@@ -218,9 +218,23 @@ class App(tk.Tk):
         self.end_date_combo = ttk.Combobox(self.frame2, textvariable=self.end_date_combo_text, state="readonly")
         self.end_date_combo.grid(row = 7, column = 2, padx=10, pady=10, sticky="ew")
 
+        # Label: Precision checkbutton
+        self.precision_check_label = ttk.Label(self.frame2, text="Vector Colours")
+        self.precision_check_label.grid(row = 8, column = 0, padx=10, pady=10, sticky="w")     
+
+        # Checkbutton: Bulletin checkbutton
+        self.precision_check_button_value = tk.IntVar()
+        self.precision_check_button = ttk.Checkbutton(self.frame2, variable=self.precision_check_button_value, text="Grey <5mm")
+        self.precision_check_button.grid(row = 8, column = 1, sticky="w")
+
+        # Checkbutton: Max checkbutton
+        self.max_check_button_value = tk.IntVar()
+        self.max_check_button = ttk.Checkbutton(self.frame2, variable=self.max_check_button_value, text="Red Maximum")
+        self.max_check_button.grid(row = 8, column = 2, sticky="w")
+
         # Button: Plot x-section 
         self.plot_xsect_button = ttk.Button(self.frame2, text='Plot x-section', command=lambda: [self.create_xsection(), self.xsection(), self.update_metadata()])
-        self.plot_xsect_button.grid(row = 8, column = 0, columnspan=3, padx=10, pady=10,sticky="ew")
+        self.plot_xsect_button.grid(row = 9, column = 0, columnspan=3, padx=10, pady=10,sticky="ew")
 
     # Frame 3: Cross Section Preview
         self.frame3 = tk.LabelFrame(self, text="Cross Section Preview", width=450, height=550)
@@ -336,7 +350,9 @@ class App(tk.Tk):
                              "y_min": self.y_min.get(),
                              "y_max": self.y_max.get(),
                              "start_date": self.start_date_combo_text.get(),
-                             "end_date": self.end_date_combo_text.get()}
+                             "end_date": self.end_date_combo_text.get(),
+                             "prec_checkbox": self.precision_check_button_value.get(),
+                             "max_checkbox": self.max_check_button_value.get()}
         
         self.metadata[self.xsect_combo_text.get()] = inputs_for_x_sect
 
@@ -384,6 +400,8 @@ class App(tk.Tk):
             self.y_max.insert(0, config_for_entries["y_max"])
             self.start_date_combo_text.set(config_for_entries["start_date"])
             self.end_date_combo_text.set(config_for_entries["end_date"])
+            self.precision_check_button_value.set(config_for_entries["prec_checkbox"])
+            self.max_check_button_value.set(config_for_entries["max_checkbox"])
         except TypeError:
             print("No configuration loaded.")
 
@@ -485,7 +503,22 @@ class App(tk.Tk):
         X = self.xlines_select["mp_dist_along_profile"].iloc[0]
         Y = self.xlines_select["mp_height_along_profile"].iloc[0]
         label = self.xlines_select["Name"]
+        lengths = np.sqrt(np.square(U) + np.square(V))
+        angles = np.arctan2(V, U)
 
+        colours = np.ones((len(lengths), 3))
+        if self.precision_check_button_value.get() == 1:
+            i_normal = np.argwhere(lengths.to_numpy()>=10)
+            i_lowp = np.argwhere(lengths.to_numpy()<10)
+            colours[i_lowp] = colours[i_lowp]*162/256
+            colours[i_normal] = colours[i_normal]*0
+        else:
+            colours = colours*0
+
+        if self.max_check_button_value.get() == 1:
+            i_max = np.argmax(lengths)
+            colours[i_max] = np.array([255, 0, 0])/256
+        
 
         ymin = float(self.y_min.get())
         ymax = float(self.y_max.get())
@@ -499,9 +532,9 @@ class App(tk.Tk):
         fig, ax = plt.subplots(figsize=(8,6))
         ax.plot(self.xlines_select["profile_distances"].iloc[0], self.xlines_select["profile_heights"].iloc[0])
         ax.set_title(self.xsect_combo_text.get())
-        q = ax.quiver(X, Y, U, V, scale=mm_scale, scale_units="xy", angles="xy", width=0.002)
+        q = ax.quiver(X, Y, U, V, scale=mm_scale, scale_units="xy", angles="xy", width=0.002, color=colours)
         ax.quiverkey(q, X=0.87, Y=1.05, U=key_scale,
-                    label=str(key_scale)+' mm', labelpos='E')
+                    label=str(key_scale)+' mm', labelpos='E', color="k")
         ax.set_aspect(vert_scale)
         ax.set_ylim([ymin, ymax])
 
