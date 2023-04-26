@@ -15,6 +15,10 @@ from matplotlib.offsetbox import OffsetImage, AnchoredOffsetbox
 from PIL import Image
 
 
+NavigationToolbar2Tk.toolitems = [t for t in NavigationToolbar2Tk.toolitems if
+             t[0] not in ('Subplots',)]
+
+plt.rcParams['savefig.dpi'] = 300
 
 def resource_path(relative_path):
     try:
@@ -37,7 +41,7 @@ class App(tk.Tk):
         super().__init__()
 
         # configure the root window
-        self.title('GS Topographic X-Section Tool v2.1')
+        self.title('GS Topographic X-Section Tool v2.2')
         self.geometry()
         self.update()
         self.minsize(self.winfo_width(), self.winfo_height())
@@ -49,6 +53,7 @@ class App(tk.Tk):
         # menubar.add_cascade(label="Batch Tools", menu=menubar)
         menubar.add_command(label="Save Configuration", command=self.save_config)
         menubar.add_command(label="Load Configuration", command=self.load_config)
+        menubar.add_command(label="Export Vectors", command=self.export_vectors)
 
 # Frame 1: Data Upload
         self.frame1 = tk.LabelFrame(self, text="Data Upload", width=450, height=450)
@@ -136,10 +141,10 @@ class App(tk.Tk):
         self.label_pb.grid(row = 10, column = 0, columnspan=2, padx=10)
 
         
-    # Frame 3: Configure project
+    # Frame 2: Configure project
         self.frame2 = tk.LabelFrame(self, text="Configure Cross Section", width=450, height=450)
-        self.frame2.grid(row=0, column=2, padx=20, pady=10, sticky="nsew")
-        self.frame2.grid_propagate(False)
+        self.frame2.grid(row=0, column=1, padx=20, pady=10, sticky="nsew")
+        # self.frame2.grid_propagate(False)
 
         # Label: Select x-section
         self.label_xsect = ttk.Label(self.frame2, text="X-section to plot")
@@ -222,7 +227,7 @@ class App(tk.Tk):
         self.precision_check_label = ttk.Label(self.frame2, text="Vector Colours")
         self.precision_check_label.grid(row = 8, column = 0, padx=10, pady=10, sticky="w")     
 
-        # Checkbutton: Bulletin checkbutton
+        # Checkbutton: Precision checkbutton
         self.precision_check_button_value = tk.IntVar()
         self.precision_check_button = ttk.Checkbutton(self.frame2, variable=self.precision_check_button_value, text="Grey <5mm")
         self.precision_check_button.grid(row = 8, column = 1, sticky="w")
@@ -230,39 +235,83 @@ class App(tk.Tk):
         # Checkbutton: Max checkbutton
         self.max_check_button_value = tk.IntVar()
         self.max_check_button = ttk.Checkbutton(self.frame2, variable=self.max_check_button_value, text="Red Maximum")
-        self.max_check_button.grid(row = 8, column = 2, sticky="w")
+        self.max_check_button.grid(row = 8, column = 2, padx=10, pady=10, sticky="w")
+
+        # Label: X Label
+        self.x_label_label = ttk.Label(self.frame2, text="X Axis Label")
+        self.x_label_label.grid(row = 9, column = 0, padx=10, pady=10, sticky="w") 
+
+        # Entry: X Label
+        self.x_label_entry = ttk.Entry(self.frame2,)
+        self.x_label_entry.grid(row = 9, column = 1,sticky="ew")
+
+        # Checkbutton: xgrid checkbutton
+        self.xgrid_check_button_value = tk.IntVar()
+        self.xgrid_check_button = ttk.Checkbutton(self.frame2, variable=self.xgrid_check_button_value, text="X Gridlines")
+        self.xgrid_check_button.grid(row = 9, column = 2,padx=10, pady=10, sticky="w")
+
+        # Label: Y Label
+        self.y_label_label = ttk.Label(self.frame2, text="Y Axis Label")
+        self.y_label_label.grid(row = 10, column = 0, padx=10, pady=10, sticky="w") 
+
+        # Entry: Y Label
+        self.y_label_entry = ttk.Entry(self.frame2,)
+        self.y_label_entry.grid(row = 10, column = 1,sticky="ew")
+
+        # Checkbutton: Ygrid checkbutton
+        self.ygrid_check_button_value = tk.IntVar()
+        self.ygrid_check_button = ttk.Checkbutton(self.frame2, variable=self.ygrid_check_button_value, text="Y Gridlines")
+        self.ygrid_check_button.grid(row = 10, column = 2,padx=10, pady=10, sticky="w")
+
+        # Label: Title
+        self.title_label = ttk.Label(self.frame2, text="Plot Title")
+        self.title_label.grid(row = 11, column = 0, padx=10, pady=10, sticky="w") 
+
+        # Entry: Title
+        self.title_entry = ttk.Entry(self.frame2,)
+        self.title_entry.grid(row = 11, column = 1, columnspan=2, padx=10, pady=10, sticky="ew")
 
         # Button: Plot x-section 
-        self.plot_xsect_button = ttk.Button(self.frame2, text='Plot x-section', command=lambda: [self.create_xsection(), self.xsection(), self.update_metadata()])
-        self.plot_xsect_button.grid(row = 9, column = 0, columnspan=3, padx=10, pady=10,sticky="ew")
+        self.plot_xsect_button = ttk.Button(self.frame2, text='Plot x-section', command=lambda: [self.create_xsection(), self.xsection(), self.update_metadata(), self.plot_popup()])
+        self.plot_xsect_button.grid(row = 12, column = 0, columnspan=1, padx=10, pady=10,sticky="ew")
 
-    # Frame 3: Cross Section Preview
-        self.frame3 = tk.LabelFrame(self, text="Cross Section Preview", width=450, height=550)
-        self.frame3.grid(row=1, column=0, columnspan=3, padx=20, sticky="nsew")
-        self.frame3.grid_propagate(False)
+        # Button: Plot ALL x-sections
+        self.plot_all_button = ttk.Button(self.frame2, text='Plot All', command=self.plot_all)
+        self.plot_all_button.grid(row = 12, column = 1, padx=10, pady=10,sticky="ew")
 
-        self.canvas_frame3 = tk.Canvas(self.frame3, width=450, height=200, highlightthickness=0)
-        self.scrollbar_frame3 = ttk.Scrollbar(self, orient="vertical", command=self.canvas_frame3.yview)
-        self.sub_frame3 = ttk.Frame(self.canvas_frame3, width=450, height=350)
+        # Button: Save ALL x-sections
+        self.save_all_button = ttk.Button(self.frame2, text='Save All', command=self.save_plots)
+        self.save_all_button.grid(row = 12, column = 2, padx=10, pady=10,sticky="ew")
 
-        self.sub_frame3.bind(
-            "<Configure>",
-            lambda e: self.canvas_frame3.configure(
-                scrollregion=self.canvas_frame3.bbox("all")
-            )
-        )
+    # # Frame 3: Cross Section Preview
+    #     self.frame3 = tk.LabelFrame(self, text="Cross Section Preview", width=450, height=550)
+    #     self.frame3.grid(row=1, column=0, columnspan=3, padx=20, sticky="nsew")
+    #     # self.frame3.grid(row=0, column=2, columnspan=3, padx=20, sticky="nsew")
 
-        self.canvas_frame3.create_window((0, 0), window=self.sub_frame3, anchor="center")
+    #     self.frame3.grid_propagate(False)
 
-        self.canvas_frame3.configure(yscrollcommand=self.scrollbar_frame3.set)
+    #     self.canvas_frame3 = tk.Canvas(self.frame3, width=450, height=200, highlightthickness=0)
+    #     self.scrollbar_frame3 = ttk.Scrollbar(self, orient="vertical", command=self.canvas_frame3.yview)
+    #     self.sub_frame3 = ttk.Frame(self.canvas_frame3, width=450, height=350)
 
-        self.canvas_frame3.pack(side="right", fill="both", expand=True)
-        self.scrollbar_frame3.grid(column=4, row=1, sticky="ns")
+    #     self.sub_frame3.bind(
+    #         "<Configure>",
+    #         lambda e: self.canvas_frame3.configure(
+    #             scrollregion=self.canvas_frame3.bbox("all")
+    #         )
+    #     )
+
+    #     self.canvas_frame3.create_window((0, 0), window=self.sub_frame3, anchor="center")
+
+    #     self.canvas_frame3.configure(yscrollcommand=self.scrollbar_frame3.set)
+
+    #     self.canvas_frame3.pack(side="right", fill="both", expand=True)
+    #     self.scrollbar_frame3.grid(column=4, row=1, sticky="ns")
 
 
-        # # Frame: Preview
-        self.frame_preview = tk.Frame(self.sub_frame3, width=400, height=200)
-        self.frame_preview.grid(row=0, column=0, padx=10, pady=10)
+    #     # # Frame: Preview
+    #     self.frame_preview = tk.Frame(self.sub_frame3, width=400, height=200)
+    #     self.frame_preview.grid(row=0, column=0, padx=10, pady=10)
 
         
 
@@ -271,7 +320,6 @@ class App(tk.Tk):
     def load_dem_path(self):
         fp = tk.filedialog.askopenfilename(
             title='Select DEM GeoTIFF',
-            initialdir='/',
             filetypes=(('GeoTIFF Files', '*.tif'),))
         self.dem_path.delete(0, 'end')
         self.dem_path.insert(0, fp)
@@ -281,7 +329,6 @@ class App(tk.Tk):
     def load_line_path(self):
         fp = tk.filedialog.askopenfilename(
             title='Select x-section line SHP',
-            initialdir='/',
             filetypes=(('Shapefiles', '*.shp'),))
         self.lines_path.delete(0, 'end')
         self.lines_path.insert(0, fp)
@@ -291,7 +338,6 @@ class App(tk.Tk):
     def load_vmps_path(self):
         fp = tk.filedialog.askopenfilename(
             title='Select vertical MPs SHP',
-            initialdir='/',
             filetypes=(('Shapefiles', '*.shp'),))
         self.vmps_path.delete(0, 'end')
         self.vmps_path.insert(0, fp)
@@ -301,7 +347,6 @@ class App(tk.Tk):
     def load_hmps_path(self):
         fp = tk.filedialog.askopenfilename(
             title='Select east-west MPs SHP',
-            initialdir='/',
             filetypes=(('Shapefiles', '*.shp'),))
         self.hmps_path.delete(0, 'end')
         self.hmps_path.insert(0, fp)
@@ -323,8 +368,32 @@ class App(tk.Tk):
         self.buffer_lines = self.xlines.buffer(distance=distance, cap_style=3)
         self.xsect_combo["values"] = self.xlines["Name"].to_list()
         self.xsect_combo_text.set(self.xsect_combo["values"][0])
+        self.title_entry.insert(0, self.xsect_combo["values"][0])
         self.metadata = dict.fromkeys(self.xlines["Name"].to_list()) # Dict that will be used to save the x-section metadata for the batch tool
+        self.vecdata = dict.fromkeys(self.xlines["Name"].to_list())
         
+        # self.metadata["title"] = self.xsect_combo["values"][0]
+        self.figdata = dict.fromkeys(self.xlines["Name"].to_list())
+                
+        # Create figures
+        for xline in self.xlines["Name"].to_list():
+            fig, ax = plt.subplots(figsize=(8,6))
+            figs = {"fig": fig,
+                    "ax": ax,
+                    "window": None,
+                    "canvas": None}
+            self.figdata[xline] = figs
+            meta_title = dict(title=xline)
+            self.metadata[xline] = meta_title
+
+            vecdata = {"Total Displacement (mm)": None,
+                    "Distance (map units)": None,
+                    "Elevation (DEM units)": None,
+                    "Vertical Displacement (mm)": None,
+                    "Horizontal Displacement (mm)": None}
+            self.vecdata[xline] = vecdata
+            print(self.metadata[xline])
+
         # Load vertical MPs
         self.label_pb["text"] = "Loading vertical MPs ..."
         self.frame1.update_idletasks()
@@ -352,7 +421,12 @@ class App(tk.Tk):
                              "start_date": self.start_date_combo_text.get(),
                              "end_date": self.end_date_combo_text.get(),
                              "prec_checkbox": self.precision_check_button_value.get(),
-                             "max_checkbox": self.max_check_button_value.get()}
+                             "max_checkbox": self.max_check_button_value.get(),
+                             "title": self.title_entry.get(),
+                             "x_label": self.x_label_entry.get(),
+                             "y_label": self.y_label_entry.get(),
+                             "x_grid": self.xgrid_check_button_value.get(),
+                             "y_grid": self.xgrid_check_button_value.get()}
         
         self.metadata[self.xsect_combo_text.get()] = inputs_for_x_sect
 
@@ -360,7 +434,6 @@ class App(tk.Tk):
         fp = tk.filedialog.asksaveasfilename(
             defaultextension=".csv",
             title='Save config CSV',
-            initialdir='/',
             filetypes=(('CSV Files', '*.csv'),))
         configuration = pd.DataFrame(self.metadata)
         # print(configuration)
@@ -369,7 +442,6 @@ class App(tk.Tk):
     def load_config(self):
         fp = tk.filedialog.askopenfilename(
             title='Select config CSV',
-            initialdir='/',
             filetypes=(('CSV Files', '*.csv'),))
         
         configuration = pd.read_csv(fp, index_col=0)
@@ -377,8 +449,20 @@ class App(tk.Tk):
         # print(self.metadata)
         self.config_to_entries("event")
 
-    def config_to_entries(self, event):
+    def export_vectors(self):
+        fp = tk.filedialog.askdirectory(title='Select a folder',)
+        for xsect in self.vecdata:
+            try:
+                vector = pd.DataFrame(self.vecdata[xsect]).reset_index(drop=True)
+                vector.to_csv(fp+"/"+xsect+"_VECTORS.csv")
+                print("Exported "+ xsect+"_VECTORS.csv")
+            except ValueError:
+                pass
+        # print(configuration)
+        
 
+    def config_to_entries(self, event):
+        
         self.vec_scale_entry.delete(0, 'end')
         self.vert_scale_entry.delete(0, 'end')
         self.arrow_length_entry.delete(0, 'end')
@@ -386,8 +470,16 @@ class App(tk.Tk):
         self.x_max.delete(0, 'end')
         self.y_min.delete(0, 'end')
         self.y_max.delete(0, 'end')
+        self.x_label_entry.delete(0, 'end')
+        self.y_label_entry.delete(0, 'end')
 
         config_for_entries = self.metadata[self.xsect_combo_text.get()]
+
+        try:
+            self.title_entry.delete(0, 'end')
+            self.title_entry.insert(0, config_for_entries["title"])
+        except:
+            pass
 
         # print(config_for_entries)
         try:
@@ -398,11 +490,16 @@ class App(tk.Tk):
             self.x_max.insert(0, config_for_entries["x_max"])
             self.y_min.insert(0, config_for_entries["y_min"])
             self.y_max.insert(0, config_for_entries["y_max"])
+            self.x_label_entry.insert(0, config_for_entries["x_label"])
+            self.y_label_entry.insert(0, config_for_entries["y_label"])
+            
             self.start_date_combo_text.set(config_for_entries["start_date"])
             self.end_date_combo_text.set(config_for_entries["end_date"])
             self.precision_check_button_value.set(config_for_entries["prec_checkbox"])
             self.max_check_button_value.set(config_for_entries["max_checkbox"])
-        except TypeError:
+            self.xgrid_check_button_value.set(config_for_entries["x_grid"])
+            self.ygrid_check_button_value.set(config_for_entries["y_grid"])
+        except:
             print("No configuration loaded.")
 
     def plot_map(self):
@@ -425,9 +522,13 @@ class App(tk.Tk):
         toolbar.grid(row=1, column=0)
 
 
-    def add_watermark(self, ax, fig):
+    def add_watermark(self, ax, fig, dpi=None):
+        if dpi == None:
+            set_dpi = fig.dpi
+        else:
+            set_dpi = dpi
         img = Image.open(resource_path("img\TREA-logo1_rgb_hi.png"))
-        width, height = ax.figure.get_size_inches()*fig.dpi
+        width, height = ax.figure.get_size_inches()*set_dpi
         wm_width = int(width/25) # make the watermark 1/4 of the figure size
         scaling = (wm_width / float(img.size[0]))
         wm_height = int(float(img.size[1])*float(scaling))
@@ -436,9 +537,9 @@ class App(tk.Tk):
         imagebox = OffsetImage(img, zoom=1, alpha=0.4)
         imagebox.image.axes = ax
 
-        ao = AnchoredOffsetbox(2, pad=0.5, borderpad=0, child=imagebox)
-        ao.patch.set_alpha(0)
-        ax.add_artist(ao)
+        self.ao = AnchoredOffsetbox(2, pad=0.5, borderpad=0, child=imagebox)
+        self.ao.patch.set_alpha(0)
+        ax.add_artist(self.ao)
 
     def create_xsection(self):
         res = np.min(self.dem.res) # DEM resolution
@@ -508,8 +609,8 @@ class App(tk.Tk):
 
         colours = np.ones((len(lengths), 3))
         if self.precision_check_button_value.get() == 1:
-            i_normal = np.argwhere(lengths.to_numpy()>=10)
-            i_lowp = np.argwhere(lengths.to_numpy()<10)
+            i_normal = np.argwhere(lengths.to_numpy()>=5)
+            i_lowp = np.argwhere(lengths.to_numpy()<5)
             colours[i_lowp] = colours[i_lowp]*162/256
             colours[i_normal] = colours[i_normal]*0
         else:
@@ -517,8 +618,14 @@ class App(tk.Tk):
 
         if self.max_check_button_value.get() == 1:
             i_max = np.argmax(lengths)
+            val_max = np.max(lengths)
             colours[i_max] = np.array([255, 0, 0])/256
         
+        self.vecdata[self.xsect_combo_text.get()]["Total Displacement (mm)"] = lengths
+        self.vecdata[self.xsect_combo_text.get()]["Distance (map units)"] = X
+        self.vecdata[self.xsect_combo_text.get()]["Elevation (DEM units)"] = Y
+        self.vecdata[self.xsect_combo_text.get()]["Vertical Displacement (mm)"] = V
+        self.vecdata[self.xsect_combo_text.get()]["Horizontal Displacement (mm)"] = U
 
         ymin = float(self.y_min.get())
         ymax = float(self.y_max.get())
@@ -528,15 +635,37 @@ class App(tk.Tk):
 
         key_scale = float(self.arrow_length_entry.get()) # m, y units of DEM
 
-
-        fig, ax = plt.subplots(figsize=(8,6))
+        fig = self.figdata[self.xsect_combo_text.get()]["fig"]
+        ax = self.figdata[self.xsect_combo_text.get()]["ax"]
+        ax.cla()
+        # fig, ax = plt.subplots(figsize=(8,6))
         ax.plot(self.xlines_select["profile_distances"].iloc[0], self.xlines_select["profile_heights"].iloc[0])
-        ax.set_title(self.xsect_combo_text.get())
-        q = ax.quiver(X, Y, U, V, scale=mm_scale, scale_units="xy", angles="xy", width=0.002, color=colours)
-        ax.quiverkey(q, X=0.87, Y=1.05, U=key_scale,
-                    label=str(key_scale)+' mm', labelpos='E', color="k")
+        ax.set_title(self.title_entry.get())
+        ax.set_xlabel(self.x_label_entry.get())
+        ax.set_ylabel(self.y_label_entry.get())
+        q = ax.quiver(X, Y, U, V, scale=mm_scale, scale_units="x", angles="xy", width=0.002, color=colours)
+        ax.quiverkey(q, X=0.8, Y=1.05, U=key_scale,
+                    label="Scale: "+str(key_scale)+' mm', labelpos='E', color="k")
+        if self.precision_check_button_value.get() == 1:
+            ax.quiverkey(q, X=0.13, Y=1.10, U=key_scale,
+            label='<5 mm', labelpos='W', color="gray")
+        
+        if self.max_check_button_value.get() == 1:
+            ax.quiverkey(q, X=0.13, Y=1.05, U=key_scale,
+                        label="Max:", labelpos='W', color="red")
+
         ax.set_aspect(vert_scale)
         ax.set_ylim([ymin, ymax])
+
+        if self.xgrid_check_button_value.get() == 1 and self.ygrid_check_button_value.get() == 1:
+            ax.grid(visible=True)
+        elif self.xgrid_check_button_value.get() == 1 and self.ygrid_check_button_value.get() == 0:
+            ax.grid(visible=True, axis="x")
+        elif self.xgrid_check_button_value.get() == 0 and self.ygrid_check_button_value.get() == 1:
+            ax.grid(visible=True, axis="y")
+        else:
+            ax.grid(visible=False)
+            
 
         try:
             xmin = float(self.x_min.get())
@@ -552,23 +681,139 @@ class App(tk.Tk):
 
         self.add_watermark(ax, fig)
 
-        # creating the Tkinter canvas
-        # containing the Matplotlib figure
-        canvas = FigureCanvasTkAgg(fig,
-                                master = self.frame_preview)
-        canvas.draw()
 
-        # placing the canvas on the Tkinter window
-        canvas.get_tk_widget().grid(row = 6, column = 1, columnspan=2, padx = 5, pady = 5)
+        # self.xsectWindow = tk.Toplevel(app)
+        # self.xsectWindow.title("Cross Section Preview")
+        # self.xsectWindow.geometry("900x900")
+        # frame_xsect = tk.LabelFrame(self.xsectWindow)
+        # frame_xsect.grid(row=0, column=0)
 
-        # creating the Matplotlib toolbar
-        toolbar = NavigationToolbar2Tk(canvas,
-                                    self.frame_preview, pack_toolbar=False)
-        # toolbar.update()
-        toolbar.grid(row = 7, column = 1, padx = 5, pady = 5)
+        # frame_xsect_opts = tk.LabelFrame(self.xsectWindow)
+        # frame_xsect_opts.grid(row=0, column=1)
 
-        # placing the toolbar on the Tkinter window
-        canvas.get_tk_widget().grid(row = 6, column = 1, padx = 5, pady = 5)
+        # button = ttk.Button(frame_xsect_opts, text='size') 
+        # button.grid(row=0, column=0)
+        # # creating the Tkinter canvas
+        # # containing the Matplotlib figure
+        # canvas = FigureCanvasTkAgg(fig,
+        #                         master = self.xsectWindow)
+        # canvas.draw()
+
+        # # placing the canvas on the Tkinter window
+        # canvas.get_tk_widget().grid(row = 6, column = 1, columnspan=2, padx = 5, pady = 5)
+
+        # # creating the Matplotlib toolbar
+        # toolbar = NavigationToolbar2Tk(canvas,
+        #                             self.xsectWindow, pack_toolbar=False)
+        # # toolbar.update()
+        # toolbar.grid(row = 7, column = 1, padx = 5, pady = 5)
+
+        # # placing the toolbar on the Tkinter window
+        # canvas.get_tk_widget().grid(row = 6, column = 1, padx = 5, pady = 5)
+
+    def plot_popup(self):
+        def remove_window(window):
+            window.withdraw()
+        window = self.figdata[self.xsect_combo_text.get()]["window"]
+        fig = self.figdata[self.xsect_combo_text.get()]["fig"]
+        canvas = self.figdata[self.xsect_combo_text.get()]["canvas"]
+        # ax = self.figdata[self.xsect_combo_text.get()]["ax"]
+        if window == None:
+            self.figdata[self.xsect_combo_text.get()]["window"] = tk.Toplevel(app)
+            window = self.figdata[self.xsect_combo_text.get()]["window"]
+            window.protocol("WM_DELETE_WINDOW", lambda window=window: remove_window(window))
+            window.title("Cross Section Preview")
+            self.figdata[self.xsect_combo_text.get()]["canvas"] = FigureCanvasTkAgg(fig, master = window)
+            canvas = self.figdata[self.xsect_combo_text.get()]["canvas"]
+            canvas.draw()
+            canvas.get_tk_widget().grid(row=0, column=0, columnspan=1)
+            self.figdata[self.xsect_combo_text.get()]["plot_open"] = True
+            toolbar = NavigationToolbar2Tk(canvas, window, pack_toolbar=False)
+            toolbar.grid(row=1, column=0)
+            # # Button: Select DEM
+            # self.save_plot_button = ttk.Button(window, text='Select DEM', command=self.save_plot)
+            # self.save_plot_button.grid(row = 1, column = 1, padx=10, pady=10,sticky="ew")
+        else:
+            # canvas.get_tk_widget().delete("all")
+            window.deiconify()
+            # canvas = FigureCanvasTkAgg(fig, master = window)
+            canvas.draw()
+            # canvas.get_tk_widget().grid(row=0, column=0)
+
+    
+    def plot_all(self):
+        self.create_xsection()
+        # fp = tk.filedialog.askdirectory(title='Select a folder', initialdir='/',)
+        for xsect in self.xsect_combo["values"]:
+            self.update_metadata()
+            self.xsect_combo_text.set(xsect)
+            
+            
+            self.config_to_entries("event")
+            # self.update_metadata()
+            self.xsection()
+            self.plot_popup()
+
+    def save_plots(self):
+        dpi=300
+        self.create_xsection()
+        fp = tk.filedialog.askdirectory(title='Select a folder',)
+        for xsect in self.xsect_combo["values"]:
+            self.update_metadata()
+            self.xsect_combo_text.set(xsect)
+            
+            
+            self.config_to_entries("event")
+            # self.update_metadata()
+            self.xsection()
+
+        for figname, figdata in self.figdata.items():
+            try:
+                print(figname, figdata)
+                figdata = figdata["fig"]
+                # print(fp+figname+".png")
+                figdata.savefig(fp+"/"+figname+".png", dpi=dpi)
+            except ValueError:
+                # print(fp+figname+".png")
+                pass
+    
+    def test(self):
+        test = ["a", "b", "c"]
+        for val in test:
+            self.xsect_combo_text.set(val)
+            print(val)
+            self.test2()
+    
+    def test2(self):
+        print("cb 2 triggered")
+        
+            
+        # fig = self.figdata[self.xsect_combo_text.get()]["fig"]
+        # ax = self.figdata[self.xsect_combo_text.get()]["ax"]
+        # self.ao.remove()
+        # self.add_watermark(ax, fig, dpi=dpi)
+        # fig.savefig("test_img.png", dpi=dpi)
+
+        
+
+        # # self.xsectWindow.geometry("900x900")
+        # # fig, ax = plt.subplots(figsize=(8,6))
+        # self.canvas = FigureCanvasTkAgg(fig,
+        #                         master = self.xsectWindow)
+        
+        # self.canvas.draw()
+        # self.canvas.get_tk_widget().pack()
+        
+
+    # def edit_plot(self):
+    #     self.canvas.get_tk_widget().delete("all")
+    #     # self.fig, self.ax = plt.subplots(figsize=(8,6))
+    #     self.ax.set_title(self.entry_set_title.get())
+    #     self.canvas = FigureCanvasTkAgg(self.fig,
+    #                             master = self.xsectWindow)
+    #     self.canvas.draw()
+    #     self.canvas.get_tk_widget().grid(row = 0, column = 0, padx = 5, pady = 5)        
+# 
 
 if __name__ == "__main__":
   app = App()
