@@ -563,6 +563,8 @@ class App(tk.Tk):
             within = self.vert_transformed.within(buff) # Mask for MPs within buffer
             mp_h = self.hori_transformed[within==True] # Horizontal MPs within buffer
             mp_v = self.vert_transformed[within==True] # Vertical MPs within buffer
+            mp_h = mp_h.replace(999, np.nan, )
+            mp_v= mp_v.replace(999, np.nan, )
 
             # Get MP displacements
             d_h = (mp_h[end_date] - mp_h[start_date]) * angle_coef # Account for the angle of the profile when calculating displacement vector
