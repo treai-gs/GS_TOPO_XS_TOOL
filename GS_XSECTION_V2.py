@@ -41,7 +41,7 @@ class App(tk.Tk):
         super().__init__()
 
         # configure the root window
-        self.title('GS Topographic X-Section Tool v2.2')
+        self.title('GS Topographic X-Section Tool v2.3')
         self.geometry()
         self.update()
         self.minsize(self.winfo_width(), self.winfo_height())
