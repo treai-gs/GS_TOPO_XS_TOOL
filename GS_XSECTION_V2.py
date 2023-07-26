@@ -12,13 +12,17 @@ from pyproj import _datadir, datadir
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib import pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnchoredOffsetbox
+import matplotlib.patches as mpatches
 from PIL import Image
+from itertools import groupby
+from statistics import mean
 
 
 NavigationToolbar2Tk.toolitems = [t for t in NavigationToolbar2Tk.toolitems if
              t[0] not in ('Subplots',)]
 
 plt.rcParams['savefig.dpi'] = 300
+plt.rcParams['axes.axisbelow'] = True
 
 def resource_path(relative_path):
     try:
@@ -41,7 +45,7 @@ class App(tk.Tk):
         super().__init__()
 
         # configure the root window
-        self.title('GS Topographic X-Section Tool v2.3')
+        self.title('GS Topographic X-Section Tool v2.4')
         self.geometry()
         self.update()
         self.minsize(self.winfo_width(), self.winfo_height())
@@ -180,6 +184,11 @@ class App(tk.Tk):
         # Entry: Arrow length
         self.arrow_length_entry = ttk.Entry(self.frame2, width=10)
         self.arrow_length_entry.grid(row = 3, column = 1,sticky="w")
+
+        # Checkbutton: Average vectors checkbutton
+        self.avg_check_button_value = tk.IntVar()
+        self.avg_check_button = ttk.Checkbutton(self.frame2, variable=self.avg_check_button_value, text="Average Vectors")
+        self.avg_check_button.grid(row = 3, column = 2, sticky="w")
 
         # Label: X Limits
         self.label_x_lims = ttk.Label(self.frame2, text='X min, X max (m)')
@@ -426,7 +435,8 @@ class App(tk.Tk):
                              "x_label": self.x_label_entry.get(),
                              "y_label": self.y_label_entry.get(),
                              "x_grid": self.xgrid_check_button_value.get(),
-                             "y_grid": self.xgrid_check_button_value.get()}
+                             "y_grid": self.xgrid_check_button_value.get(),
+                             "avg_vectors": self.avg_check_button_value.get()}
         
         self.metadata[self.xsect_combo_text.get()] = inputs_for_x_sect
 
@@ -460,9 +470,64 @@ class App(tk.Tk):
                 pass
         # print(configuration)
         
+    # def config_to_entries_new(self, event):
+    #     self.vec_scale_entry.delete(0, 'end')
+    #     self.vert_scale_entry.delete(0, 'end')
+    #     self.arrow_length_entry.delete(0, 'end')
+    #     self.x_min.delete(0, 'end')
+    #     self.x_max.delete(0, 'end')
+    #     self.y_min.delete(0, 'end')
+    #     self.y_max.delete(0, 'end')
+    #     self.x_label_entry.delete(0, 'end')
+    #     self.y_label_entry.delete(0, 'end')
+
+    #     config_for_entries = self.metadata[self.xsect_combo_text.get()]
+
+    #     all_fields = ["vector_scale", 
+    #                   "vertical_exaggeration",
+    #                   "arrow_length",
+    #                   "x_min",
+    #                   "x_max",
+    #                   "y_min",
+    #                   "y_max",
+    #                   "start_date",
+    #                   "end_date",
+    #                   "prec_checkbox",
+    #                   "max_checkbox",
+    #                   "title",
+    #                   "x_label",
+    #                   "y_label",
+    #                   "x_grid",
+    #                   "y_grid",
+    #                   "avg_vectors"]
+    #     for field in all_fields:
+    #         if field not in config_for_entries:
+    #             config_for_entries[field]=None
 
     def config_to_entries(self, event):
         
+        all_fields = ["vector_scale", 
+                    "vertical_exaggeration",
+                    "arrow_length",
+                    "x_min",
+                    "x_max",
+                    "y_min",
+                    "y_max",
+                    "start_date",
+                    "end_date",
+                    "prec_checkbox",
+                    "max_checkbox",
+                    "title",
+                    "x_label",
+                    "y_label",
+                    "x_grid",
+                    "y_grid",
+                    "avg_vectors"]
+        config_for_entries = self.metadata[self.xsect_combo_text.get()]
+        for field in all_fields:
+            if field not in config_for_entries:
+                config_for_entries[field]=0
+
         self.vec_scale_entry.delete(0, 'end')
         self.vert_scale_entry.delete(0, 'end')
         self.arrow_length_entry.delete(0, 'end')
@@ -473,7 +538,6 @@ class App(tk.Tk):
         self.x_label_entry.delete(0, 'end')
         self.y_label_entry.delete(0, 'end')
 
-        config_for_entries = self.metadata[self.xsect_combo_text.get()]
 
         try:
             self.title_entry.delete(0, 'end')
@@ -499,6 +563,7 @@ class App(tk.Tk):
             self.max_check_button_value.set(config_for_entries["max_checkbox"])
             self.xgrid_check_button_value.set(config_for_entries["x_grid"])
             self.ygrid_check_button_value.set(config_for_entries["y_grid"])
+            self.avg_check_button_value.set(config_for_entries["avg_vectors"])
         except:
             print("No configuration loaded.")
 
@@ -576,17 +641,24 @@ class App(tk.Tk):
             mp_coords = []
             mp_coords += [list(p.coords)[0] for p in mp_h["geometry"]]
             mp_dists = [prf.project(shapely.geometry.Point(p)) for p in mp_coords]
-            mp_dist_along_profile.append(mp_dists)
+            # mp_dist_along_profile.append(mp_dists)
 
             # Get height of projected MPs
             mp_projected_coords = [prf.interpolate(prf.project(shapely.geometry.Point(p))).coords[0] for p in mp_coords] # Coordinates of the projected MPs along the line
-            mp_heights = np.array([x for x in self.dem.sample(mp_projected_coords)]).ravel()
-            mp_height_along_profile.append(mp_heights)
+            # mp_heights = np.array([x for x in self.dem.sample(mp_projected_coords)]).ravel()
+            
 
             # Get height of the DEM surface
             s_dists = np.arange(0, prf.length, res/2) # Distances along the line with a sampling frequency adequate for the DEM resolution
             s_coords = [prf.interpolate(distance).coords[0] for distance in s_dists] # Coordinates for the DEM samples [prf.boundary.geoms[1].coords[0]]
             s_heights = np.array([x for x in self.dem.sample(s_coords)]).ravel()
+
+            # Get height of the MPs, at positions equal to to the closest DEM coordinates
+            mp_dist_nearest = s_dists[abs(np.array(mp_dists)[None, :] - s_dists[:, None]).argmin(axis=0)]
+            mp_coords_shift = [prf.interpolate(distance).coords[0] for distance in mp_dist_nearest]
+            mp_heights = np.array([x for x in self.dem.sample(mp_coords_shift)]).ravel() # the heights of the MPs along the profile, shifted to nearest DEM sampling coord
+            mp_height_along_profile.append(mp_heights)
+            mp_dist_along_profile.append(mp_dist_nearest)
             profile_distances.append(s_dists)
             profile_heights.append(s_heights)
         
@@ -601,18 +673,42 @@ class App(tk.Tk):
         self.xlines_select = self.xlines[self.xlines["Name"] == self.xsect_combo_text.get()]
         # print(self.xlines_select)
         # print(self.xlines_select["mp_dist_along_profile"].iloc[0])
-        V = self.xlines_select["mp_vd"].iloc[0]
-        U = self.xlines_select["mp_hd"].iloc[0]
+        V = self.xlines_select["mp_vd"].iloc[0].to_numpy()
+        U = self.xlines_select["mp_hd"].iloc[0].to_numpy()
         X = self.xlines_select["mp_dist_along_profile"].iloc[0]
         Y = self.xlines_select["mp_height_along_profile"].iloc[0]
+        X_round = np.round(X, 1)
+
+        print(X_round)
+        X_nodup, dup_i = np.unique(X, return_index=True)
+        Y_without_duplicates = Y[dup_i]
+
+        X_without_duplicates, U_avg = zip(*(
+             (k, mean(list(zip(*g))[1])) for k, g in
+             groupby(sorted(zip(X, U)),
+                     lambda x: x[0])))
+
+        X_without_duplicates, V_avg = zip(*(
+             (k, mean(list(zip(*g))[1])) for k, g in
+             groupby(sorted(zip(X, V)),
+                     lambda x: x[0])))
+        
+        if self.avg_check_button_value.get() == 1:
+            U = U_avg
+            V = V_avg
+            X = X_without_duplicates
+            Y = Y_without_duplicates
+
+        print(U)
         label = self.xlines_select["Name"]
+
         lengths = np.sqrt(np.square(U) + np.square(V))
         angles = np.arctan2(V, U)
 
         colours = np.ones((len(lengths), 3))
         if self.precision_check_button_value.get() == 1:
-            i_normal = np.argwhere(lengths.to_numpy()>=5)
-            i_lowp = np.argwhere(lengths.to_numpy()<5)
+            i_normal = np.argwhere(lengths>=5)
+            i_lowp = np.argwhere(lengths<5)
             colours[i_lowp] = colours[i_lowp]*162/256
             colours[i_normal] = colours[i_normal]*0
         else:
@@ -640,6 +736,10 @@ class App(tk.Tk):
         fig = self.figdata[self.xsect_combo_text.get()]["fig"]
         ax = self.figdata[self.xsect_combo_text.get()]["ax"]
         ax.cla()
+        legend_handles = []
+        red_patch = mpatches.Patch(color='red', label='Maximum vector')
+        grey_patch = mpatches.Patch(color='gray', label='Below precision (< 5 mm)')
+        
         # fig, ax = plt.subplots(figsize=(8,6))
         ax.plot(self.xlines_select["profile_distances"].iloc[0], self.xlines_select["profile_heights"].iloc[0])
         ax.set_title(self.title_entry.get())
@@ -648,13 +748,18 @@ class App(tk.Tk):
         q = ax.quiver(X, Y, U, V, scale=mm_scale, scale_units="x", angles="xy", width=0.002, color=colours)
         ax.quiverkey(q, X=0.8, Y=1.05, U=key_scale,
                     label="Scale: "+str(key_scale)+' mm', labelpos='E', color="k")
+                    
         if self.precision_check_button_value.get() == 1:
-            ax.quiverkey(q, X=0.13, Y=1.10, U=key_scale,
-            label='<5 mm', labelpos='W', color="gray")
+            # ax.quiverkey(q, X=0.13, Y=1.10, U=key_scale,
+            # label='<5 mm', labelpos='W', color="gray")
+            legend_handles.append(grey_patch)
+            
+
         
         if self.max_check_button_value.get() == 1:
-            ax.quiverkey(q, X=0.13, Y=1.05, U=key_scale,
-                        label="Max:", labelpos='W', color="red")
+            # ax.quiverkey(q, X=0.13, Y=1.05, U=key_scale,
+            #             label="Max:", labelpos='W', color="red")
+            legend_handles.append(red_patch)
 
         ax.set_aspect(vert_scale)
         ax.set_ylim([ymin, ymax])
@@ -679,7 +784,9 @@ class App(tk.Tk):
             self.x_min.insert(0, str(xmin))
             self.x_max.insert(0, str(xmax))
 
-        ax.set_xlim([xmin, xmax])        
+        ax.set_xlim([xmin, xmax])
+        if legend_handles: 
+            ax.legend(handles=legend_handles,frameon=False)        
 
         self.add_watermark(ax, fig)
 
