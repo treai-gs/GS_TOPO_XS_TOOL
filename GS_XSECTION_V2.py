@@ -45,7 +45,7 @@ class App(tk.Tk):
         super().__init__()
 
         # configure the root window
-        self.title('GS Topographic X-Section Tool v2.4')
+        self.title('GS Topographic X-Section Tool v2.4.1')
         self.geometry()
         self.update()
         self.minsize(self.winfo_width(), self.winfo_height())
@@ -678,8 +678,15 @@ class App(tk.Tk):
         X = self.xlines_select["mp_dist_along_profile"].iloc[0]
         Y = self.xlines_select["mp_height_along_profile"].iloc[0]
         X_round = np.round(X, 1)
+        
+        # Remove UDS points entirely from consideration
+        uds_i = np.isnan(U)
+        U = U[~uds_i]
+        V = V[~uds_i]
+        X = X[~uds_i]
+        Y = Y[~uds_i]
 
-        print(X_round)
+        # print(X_round)
         X_nodup, dup_i = np.unique(X, return_index=True)
         Y_without_duplicates = Y[dup_i]
 
