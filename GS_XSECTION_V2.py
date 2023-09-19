@@ -45,7 +45,7 @@ class App(tk.Tk):
         super().__init__()
 
         # configure the root window
-        self.title('GS Topographic X-Section Tool v2.4.1')
+        self.title('GS Topographic X-Section Tool v2.4.2')
         self.geometry()
         self.update()
         self.minsize(self.winfo_width(), self.winfo_height())
@@ -132,7 +132,7 @@ class App(tk.Tk):
         self.load_data_button = ttk.Button(self.frame1, text='Load Data', command=self.upload_data)
         self.load_data_button.grid(row = 9, column = 0, padx=10, pady=10,sticky="ew")
 
-        # Button: Load Data 
+        # Button: Map Button
         self.map_button = ttk.Button(self.frame1, text='Map Preview', command=self.plot_map)
         self.map_button.grid(row = 9, column = 1, padx=10, pady=10,sticky="ew")
 
@@ -377,6 +377,7 @@ class App(tk.Tk):
         self.buffer_lines = self.xlines.buffer(distance=distance, cap_style=3)
         self.xsect_combo["values"] = self.xlines["Name"].to_list()
         self.xsect_combo_text.set(self.xsect_combo["values"][0])
+        self.title_entry.delete(0, 'end')
         self.title_entry.insert(0, self.xsect_combo["values"][0])
         self.metadata = dict.fromkeys(self.xlines["Name"].to_list()) # Dict that will be used to save the x-section metadata for the batch tool
         self.vecdata = dict.fromkeys(self.xlines["Name"].to_list())
@@ -576,7 +577,7 @@ class App(tk.Tk):
         distance = float(self.line_width_entry.get())
         self.buffer_lines = self.xlines.buffer(distance=distance, cap_style=3)
         fig_map, ax = plt.subplots(1,1)
-        dem_ax = show(self.dem, ax=ax)
+        # dem_ax = show(self.dem, ax=ax)
         self.vert_transformed.plot("VEL_V", vmin=-100, vmax=100, cmap="jet_r", markersize=4, ax=ax)
         self.buffer_lines.plot(ax=ax, color="blue", alpha=0.5)
         canvas_map = FigureCanvasTkAgg(fig_map, master = self.mapWindow)
@@ -723,7 +724,7 @@ class App(tk.Tk):
 
         if self.max_check_button_value.get() == 1:
             i_max = np.argmax(lengths)
-            val_max = np.max(lengths)
+            val_max = round(np.max(lengths))
             colours[i_max] = np.array([255, 0, 0])/256
         
         self.vecdata[self.xsect_combo_text.get()]["Total Displacement (mm)"] = lengths
@@ -744,7 +745,7 @@ class App(tk.Tk):
         ax = self.figdata[self.xsect_combo_text.get()]["ax"]
         ax.cla()
         legend_handles = []
-        red_patch = mpatches.Patch(color='red', label='Maximum vector')
+        
         grey_patch = mpatches.Patch(color='gray', label='Below precision (< 5 mm)')
         
         # fig, ax = plt.subplots(figsize=(8,6))
@@ -766,6 +767,7 @@ class App(tk.Tk):
         if self.max_check_button_value.get() == 1:
             # ax.quiverkey(q, X=0.13, Y=1.05, U=key_scale,
             #             label="Max:", labelpos='W', color="red")
+            red_patch = mpatches.Patch(color='red', label='Maximum vector: ({} mm)'.format(str(val_max)))
             legend_handles.append(red_patch)
 
         ax.set_aspect(vert_scale)
