@@ -16,6 +16,8 @@ import matplotlib.patches as mpatches
 from PIL import Image
 from itertools import groupby
 from statistics import mean
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib.projections import get_projection_class
 
 
 NavigationToolbar2Tk.toolitems = [t for t in NavigationToolbar2Tk.toolitems if
@@ -49,6 +51,7 @@ class App(tk.Tk):
         self.geometry()
         self.update()
         self.minsize(self.winfo_width(), self.winfo_height())
+        self.units = 0
 
         self.rowconfigure(1, weight = 1)
         self.columnconfigure(0, weight = 1)
@@ -58,6 +61,7 @@ class App(tk.Tk):
         menubar.add_command(label="Save Configuration", command=self.save_config)
         menubar.add_command(label="Load Configuration", command=self.load_config)
         menubar.add_command(label="Export Vectors", command=self.export_vectors)
+        menubar.add_command(label="Change Units to Imperial", command=lambda: self.change_units(menubar))
 
 # Frame 1: Data Upload
         self.frame1 = tk.LabelFrame(self, text="Data Upload", width=450, height=450)
@@ -177,8 +181,15 @@ class App(tk.Tk):
         self.vert_scale_entry = ttk.Entry(self.frame2, width=10)
         self.vert_scale_entry.grid(row = 2, column = 1,sticky="w")
 
+        # Checkbutton: Average vectors checkbutton
+        self.compass_check_button_value = tk.IntVar()
+        self.compass_check_button = ttk.Checkbutton(self.frame2, variable=self.compass_check_button_value, text="Plot Line Orientation")
+        self.compass_check_button.grid(row = 2, column = 2, sticky="w")
+
+
         # Label: Arrow length
-        self.label_arrow_length = ttk.Label(self.frame2, text='Arrow Length (mm)')
+        self.arrow_text = 'Arrow Length (mm)'
+        self.label_arrow_length = ttk.Label(self.frame2, text=self.arrow_text)
         self.label_arrow_length.grid(row = 3, column = 0, padx=10, pady=10, sticky="w")
 
         # Entry: Arrow length
@@ -191,7 +202,8 @@ class App(tk.Tk):
         self.avg_check_button.grid(row = 3, column = 2, sticky="w")
 
         # Label: X Limits
-        self.label_x_lims = ttk.Label(self.frame2, text='X min, X max (m)')
+        self.x_lims_text = 'X min, X max (m)'
+        self.label_x_lims = ttk.Label(self.frame2, text=self.x_lims_text)
         self.label_x_lims.grid(row = 4, column = 0, padx=10, pady=10, sticky="ew")
 
         # Entry: X Limits Min
@@ -203,7 +215,8 @@ class App(tk.Tk):
         self.x_max.grid(row = 4, column = 2,padx=10, pady=10,sticky="w")
 
         # Label: Y Limits
-        self.label_y_lims = ttk.Label(self.frame2, text='Y min, Y max (m)')
+        self.y_lims_text = 'Y min, Y max (m)'
+        self.label_y_lims = ttk.Label(self.frame2, text=self.y_lims_text)
         self.label_y_lims.grid(row = 5, column = 0, padx=10, pady=10, sticky="ew")
 
         # Entry: Y Limits Min
@@ -237,8 +250,9 @@ class App(tk.Tk):
         self.precision_check_label.grid(row = 8, column = 0, padx=10, pady=10, sticky="w")     
 
         # Checkbutton: Precision checkbutton
+        self.precision_check_button_text = "Grey <5 mm"
         self.precision_check_button_value = tk.IntVar()
-        self.precision_check_button = ttk.Checkbutton(self.frame2, variable=self.precision_check_button_value, text="Grey <5mm")
+        self.precision_check_button = ttk.Checkbutton(self.frame2, variable=self.precision_check_button_value, text=self.precision_check_button_text)
         self.precision_check_button.grid(row = 8, column = 1, sticky="w")
 
         # Checkbutton: Max checkbutton
@@ -388,19 +402,21 @@ class App(tk.Tk):
         # Create figures
         for xline in self.xlines["Name"].to_list():
             fig, ax = plt.subplots(figsize=(8,6))
+            axins = inset_axes(ax, width=0.5, height=0.5, loc=3, borderpad=2, axes_class=get_projection_class("polar"),)
             figs = {"fig": fig,
                     "ax": ax,
+                    "axins": axins,
                     "window": None,
                     "canvas": None}
             self.figdata[xline] = figs
             meta_title = dict(title=xline)
             self.metadata[xline] = meta_title
 
-            vecdata = {"Total Displacement (mm)": None,
-                    "Distance (map units)": None,
-                    "Elevation (DEM units)": None,
-                    "Vertical Displacement (mm)": None,
-                    "Horizontal Displacement (mm)": None}
+            vecdata = {"Total Displacement": None,
+                    "Distance": None,
+                    "Elevation": None,
+                    "Vertical Displacement": None,
+                    "Horizontal Displacement": None}
             self.vecdata[xline] = vecdata
             print(self.metadata[xline])
 
@@ -437,7 +453,8 @@ class App(tk.Tk):
                              "y_label": self.y_label_entry.get(),
                              "x_grid": self.xgrid_check_button_value.get(),
                              "y_grid": self.xgrid_check_button_value.get(),
-                             "avg_vectors": self.avg_check_button_value.get()}
+                             "avg_vectors": self.avg_check_button_value.get(),
+                             "compass": self.compass_check_button_value.get()}
         
         self.metadata[self.xsect_combo_text.get()] = inputs_for_x_sect
 
@@ -469,41 +486,27 @@ class App(tk.Tk):
                 print("Exported "+ xsect+"_VECTORS.csv")
             except ValueError:
                 pass
-        # print(configuration)
+    
+    def change_units(self, menubar):
+        if self.units == 0:
+            self.arrow_text = "Arrow Length (in)"
+            self.x_lims_text = 'X min, X max (ft)'
+            self.y_lims_text = 'Y min, Y max (ft)'
+            self.precision_check_button_text = "Grey <0.2 in"
+            menubar.entryconfigure(4, label="Change Units to Metric")
+            self.units = 1
+        else:
+            self.arrow_text = "Arrow Length (mm)"
+            self.x_lims_text = 'X min, X max (m)'
+            self.y_lims_text = 'Y min, Y max (m)'
+            self.precision_check_button_text = "Grey <0.5 mm"
+            menubar.entryconfigure(4, label="Change Units to Imperial")
+            self.units = 0
         
-    # def config_to_entries_new(self, event):
-    #     self.vec_scale_entry.delete(0, 'end')
-    #     self.vert_scale_entry.delete(0, 'end')
-    #     self.arrow_length_entry.delete(0, 'end')
-    #     self.x_min.delete(0, 'end')
-    #     self.x_max.delete(0, 'end')
-    #     self.y_min.delete(0, 'end')
-    #     self.y_max.delete(0, 'end')
-    #     self.x_label_entry.delete(0, 'end')
-    #     self.y_label_entry.delete(0, 'end')
-
-    #     config_for_entries = self.metadata[self.xsect_combo_text.get()]
-
-    #     all_fields = ["vector_scale", 
-    #                   "vertical_exaggeration",
-    #                   "arrow_length",
-    #                   "x_min",
-    #                   "x_max",
-    #                   "y_min",
-    #                   "y_max",
-    #                   "start_date",
-    #                   "end_date",
-    #                   "prec_checkbox",
-    #                   "max_checkbox",
-    #                   "title",
-    #                   "x_label",
-    #                   "y_label",
-    #                   "x_grid",
-    #                   "y_grid",
-    #                   "avg_vectors"]
-    #     for field in all_fields:
-    #         if field not in config_for_entries:
-    #             config_for_entries[field]=None
+        self.label_arrow_length["text"] = self.arrow_text
+        self.label_x_lims["text"] = self.x_lims_text
+        self.label_y_lims["text"] = self.y_lims_text
+        self.precision_check_button["text"] = self.precision_check_button_text
 
     def config_to_entries(self, event):
         
@@ -523,7 +526,8 @@ class App(tk.Tk):
                     "y_label",
                     "x_grid",
                     "y_grid",
-                    "avg_vectors"]
+                    "avg_vectors",
+                    "compass"]
         config_for_entries = self.metadata[self.xsect_combo_text.get()]
         for field in all_fields:
             if field not in config_for_entries:
@@ -565,6 +569,7 @@ class App(tk.Tk):
             self.xgrid_check_button_value.set(config_for_entries["x_grid"])
             self.ygrid_check_button_value.set(config_for_entries["y_grid"])
             self.avg_check_button_value.set(config_for_entries["avg_vectors"])
+            self.compass_check_button_value.set(config_for_entries["compass"])
         except:
             print("No configuration loaded.")
 
@@ -577,7 +582,7 @@ class App(tk.Tk):
         distance = float(self.line_width_entry.get())
         self.buffer_lines = self.xlines.buffer(distance=distance, cap_style=3)
         fig_map, ax = plt.subplots(1,1)
-        # dem_ax = show(self.dem, ax=ax)
+        dem_ax = show(self.dem, ax=ax)
         self.vert_transformed.plot("VEL_V", vmin=-100, vmax=100, cmap="jet_r", markersize=4, ax=ax)
         self.buffer_lines.plot(ax=ax, color="blue", alpha=0.5)
         canvas_map = FigureCanvasTkAgg(fig_map, master = self.mapWindow)
@@ -616,6 +621,7 @@ class App(tk.Tk):
         mp_height_along_profile = []
         profile_distances = []
         profile_heights = []
+        angles = []
         start_date = self.start_date_combo_text.get()
         end_date = self.end_date_combo_text.get()
 
@@ -624,6 +630,8 @@ class App(tk.Tk):
             p0 = prf.boundary.geoms[0]
             p1 = prf.boundary.geoms[1]
             angle_coef = np.abs(np.sin(np.arctan2(p1.x - p0.x, p1.y - p0.y))) # Used to account for offset in angle from E-W
+            angle = np.arctan2(p1.x - p0.x, p1.y - p0.y)
+            angles.append(angle)
 
             # Get MPs within the buffer
             within = self.vert_transformed.within(buff) # Mask for MPs within buffer
@@ -663,21 +671,38 @@ class App(tk.Tk):
             profile_distances.append(s_dists)
             profile_heights.append(s_heights)
         
+
         self.xlines["mp_hd"] = mp_hd
         self.xlines["mp_vd"] = mp_vd
         self.xlines["mp_dist_along_profile"] = mp_dist_along_profile
         self.xlines["mp_height_along_profile"] = mp_height_along_profile
         self.xlines["profile_distances"] = profile_distances
         self.xlines["profile_heights"] = profile_heights
+        self.xlines["angles"] = angles
 
     def xsection(self):
+        # check units
+        if self.units == 0:
+            ufac = 1
+            ufac_big = 1
+            grey_patch_label = 'Below precision (< 5 mm)'
+            scale_text = " mm"
+            scale_text_big = " m"
+        else:
+            ufac = 0.0393701
+            ufac_big = 3.28084
+            grey_patch_label = 'Below precision (< 0.2 in)'
+            scale_text = " in"
+            scale_text_big = " ft"
+
         self.xlines_select = self.xlines[self.xlines["Name"] == self.xsect_combo_text.get()]
         # print(self.xlines_select)
         # print(self.xlines_select["mp_dist_along_profile"].iloc[0])
-        V = self.xlines_select["mp_vd"].iloc[0].to_numpy()
-        U = self.xlines_select["mp_hd"].iloc[0].to_numpy()
-        X = self.xlines_select["mp_dist_along_profile"].iloc[0]
-        Y = self.xlines_select["mp_height_along_profile"].iloc[0]
+        V = self.xlines_select["mp_vd"].iloc[0].to_numpy() * ufac
+        U = self.xlines_select["mp_hd"].iloc[0].to_numpy() * ufac
+        X = self.xlines_select["mp_dist_along_profile"].iloc[0] * ufac_big
+        Y = self.xlines_select["mp_height_along_profile"].iloc[0] * ufac_big
+        theta = self.xlines_select["angles"].iloc[0]
         X_round = np.round(X, 1)
         
         # Remove UDS points entirely from consideration
@@ -715,8 +740,8 @@ class App(tk.Tk):
 
         colours = np.ones((len(lengths), 3))
         if self.precision_check_button_value.get() == 1:
-            i_normal = np.argwhere(lengths>=5)
-            i_lowp = np.argwhere(lengths<5)
+            i_normal = np.argwhere(lengths>=5*ufac)
+            i_lowp = np.argwhere(lengths<5*ufac)
             colours[i_lowp] = colours[i_lowp]*162/256
             colours[i_normal] = colours[i_normal]*0
         else:
@@ -724,54 +749,57 @@ class App(tk.Tk):
 
         if self.max_check_button_value.get() == 1:
             i_max = np.argmax(lengths)
-            val_max = round(np.max(lengths))
+            if self.units == 0:
+                val_max = round(np.max(lengths))
+            else:
+                val_max = round(np.max(lengths), 2)
             colours[i_max] = np.array([255, 0, 0])/256
         
-        self.vecdata[self.xsect_combo_text.get()]["Total Displacement (mm)"] = lengths
-        self.vecdata[self.xsect_combo_text.get()]["Distance (map units)"] = X
-        self.vecdata[self.xsect_combo_text.get()]["Elevation (DEM units)"] = Y
-        self.vecdata[self.xsect_combo_text.get()]["Vertical Displacement (mm)"] = V
-        self.vecdata[self.xsect_combo_text.get()]["Horizontal Displacement (mm)"] = U
+        self.vecdata[self.xsect_combo_text.get()]["Total Displacement"] = lengths
+        self.vecdata[self.xsect_combo_text.get()]["Distance"] = X
+        self.vecdata[self.xsect_combo_text.get()]["Elevation"] = Y
+        self.vecdata[self.xsect_combo_text.get()]["Vertical Displacement"] = V
+        self.vecdata[self.xsect_combo_text.get()]["Horizontal Displacement"] = U
 
-        ymin = float(self.y_min.get())
-        ymax = float(self.y_max.get())
+        # ymin = float(self.y_min.get())
+        # ymax = float(self.y_max.get())
         vert_scale = float(self.vert_scale_entry.get())
         vec_scale = float(self.vec_scale_entry.get())
-        mm_scale = 1 / vec_scale # scale of the arrows in mm
+        mm_scale = 1 / vec_scale * ufac # scale of the arrows (mm/in)
 
         key_scale = float(self.arrow_length_entry.get()) # m, y units of DEM
 
         fig = self.figdata[self.xsect_combo_text.get()]["fig"]
         ax = self.figdata[self.xsect_combo_text.get()]["ax"]
+        axins = self.figdata[self.xsect_combo_text.get()]["axins"]
         ax.cla()
+        axins.cla()
         legend_handles = []
         
-        grey_patch = mpatches.Patch(color='gray', label='Below precision (< 5 mm)')
+        grey_patch = mpatches.Patch(color='gray', label= grey_patch_label)
         
         # fig, ax = plt.subplots(figsize=(8,6))
-        ax.plot(self.xlines_select["profile_distances"].iloc[0], self.xlines_select["profile_heights"].iloc[0])
+        ax.plot(self.xlines_select["profile_distances"].iloc[0]*ufac_big, self.xlines_select["profile_heights"].iloc[0]*ufac_big)
         ax.set_title(self.title_entry.get())
         ax.set_xlabel(self.x_label_entry.get())
         ax.set_ylabel(self.y_label_entry.get())
         q = ax.quiver(X, Y, U, V, scale=mm_scale, scale_units="x", angles="xy", width=0.002, color=colours)
         ax.quiverkey(q, X=0.8, Y=1.05, U=key_scale,
-                    label="Scale: "+str(key_scale)+' mm', labelpos='E', color="k")
+                    label="Scale: "+str(key_scale)+scale_text, labelpos='E', color="k")
                     
         if self.precision_check_button_value.get() == 1:
             # ax.quiverkey(q, X=0.13, Y=1.10, U=key_scale,
             # label='<5 mm', labelpos='W', color="gray")
             legend_handles.append(grey_patch)
-            
-
         
         if self.max_check_button_value.get() == 1:
             # ax.quiverkey(q, X=0.13, Y=1.05, U=key_scale,
             #             label="Max:", labelpos='W', color="red")
-            red_patch = mpatches.Patch(color='red', label='Maximum vector: ({} mm)'.format(str(val_max)))
+            red_patch = mpatches.Patch(color='red', label='Maximum vector: ({}'.format(str(val_max)) + scale_text + ")")
             legend_handles.append(red_patch)
 
         ax.set_aspect(vert_scale)
-        ax.set_ylim([ymin, ymax])
+        
 
         if self.xgrid_check_button_value.get() == 1 and self.ygrid_check_button_value.get() == 1:
             ax.grid(visible=True)
@@ -782,6 +810,20 @@ class App(tk.Tk):
         else:
             ax.grid(visible=False)
             
+        try:
+            ymin = float(self.y_min.get())
+            ymax = float(self.y_max.get())
+        except ValueError:
+            ymin, ymax = ax.get_ylim()
+            self.y_min.delete(0, "end")
+            self.y_max.delete(0, "end")
+            self.y_min.insert(0, str(ymin-100*ufac_big))
+            self.y_max.insert(0, str(ymax+100*ufac_big))
+            ymin = ymin-100*ufac_big
+            ymax = ymax+100*ufac_big
+            
+
+
 
         try:
             xmin = float(self.x_min.get())
@@ -794,40 +836,33 @@ class App(tk.Tk):
             self.x_max.insert(0, str(xmax))
 
         ax.set_xlim([xmin, xmax])
+        ax.set_ylim([ymin, ymax])
+
         if legend_handles: 
-            ax.legend(handles=legend_handles,frameon=False)        
+            ax.legend(handles=legend_handles,frameon=False)
+        
+        # axins = inset_axes(ax, width=0.5, height=0.5, loc=3, borderpad=2, axes_class=get_projection_class("polar"),)
+        
+        dx = [theta, theta-np.deg2rad(180)]
+        dy = [1, 1]
+
+        axins.vlines(dx, 0, dy, color="b")
+        axins.set_aspect(1)
+        axins.set_xticklabels(['N', '', 'E', '', 'S', '', 'W', ''],fontsize=8)
+        axins.set_theta_direction(-1)
+        axins.set_theta_zero_location("N")
+        axins.set_yticklabels([])
+        axins.tick_params(pad=0)
+        axins.arrow(theta, 0, 0, 0.5, alpha = 1, width = 0.1,
+                        edgecolor = 'b', facecolor = 'b', lw = 1, zorder=5)
+        # plot compass
+        if self.compass_check_button_value.get() == 1:
+            axins.set_visible(True)
+        elif self.compass_check_button_value.get() == 0:
+            axins.set_visible(False)
 
         self.add_watermark(ax, fig)
 
-
-        # self.xsectWindow = tk.Toplevel(app)
-        # self.xsectWindow.title("Cross Section Preview")
-        # self.xsectWindow.geometry("900x900")
-        # frame_xsect = tk.LabelFrame(self.xsectWindow)
-        # frame_xsect.grid(row=0, column=0)
-
-        # frame_xsect_opts = tk.LabelFrame(self.xsectWindow)
-        # frame_xsect_opts.grid(row=0, column=1)
-
-        # button = ttk.Button(frame_xsect_opts, text='size') 
-        # button.grid(row=0, column=0)
-        # # creating the Tkinter canvas
-        # # containing the Matplotlib figure
-        # canvas = FigureCanvasTkAgg(fig,
-        #                         master = self.xsectWindow)
-        # canvas.draw()
-
-        # # placing the canvas on the Tkinter window
-        # canvas.get_tk_widget().grid(row = 6, column = 1, columnspan=2, padx = 5, pady = 5)
-
-        # # creating the Matplotlib toolbar
-        # toolbar = NavigationToolbar2Tk(canvas,
-        #                             self.xsectWindow, pack_toolbar=False)
-        # # toolbar.update()
-        # toolbar.grid(row = 7, column = 1, padx = 5, pady = 5)
-
-        # # placing the toolbar on the Tkinter window
-        # canvas.get_tk_widget().grid(row = 6, column = 1, padx = 5, pady = 5)
 
     def plot_popup(self):
         def remove_window(window):
